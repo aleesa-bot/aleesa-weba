@@ -1,0 +1,34 @@
+{
+# server address
+    "server" : "redis",
+    "port" : "6379",
+
+# where caches go there
+    "cachedir" : "data/cache",
+
+# unprivileged system user to run bot as
+    "user" : "nobody",
+
+# messages with commands will begin with this symbol
+    "csign": "!",
+
+# logs goes there
+    "log" : "/var/log/aleesa-weba/aleesa-weba.log",
+    "loglevel": "notice",
+
+# ditto
+    "pid" : "/var/run/aleesa-weba/aleesa-weba.pid",
+
+    "openweathermap" : {
+        "appid": "get_it_on_openweathermap.org"
+    },
+
+    "image": {
+        "dir" : "data/image",
+        "flickr" : {
+            "consumer_key" : "key",
+            "consumer_secret" : "key_secret",
+            "verifier": "verifier_key"
+        }
+    }
+}
