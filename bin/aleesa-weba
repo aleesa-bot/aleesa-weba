@@ -111,8 +111,12 @@ if (defined $logfile) {
 	Log::Any::Adapter->set ('File', '/dev/null');
 }
 
-# double fork attach to /dev/null all stdio and go background
-#daemonize ();
+# по-умолчанию, демонизируемся, если явно не указано, что этого делать не надо
+if (defined ($c->{daemonize}) && $c->{daemonize}) {
+	daemonize ();
+} elsif ( ! defined ($c->{daemonize})) {
+	daemonize ();
+}
 
 # write pidfile
 my $apath = abs_path $PROGRAM_NAME;
@@ -122,7 +126,6 @@ unless (defined $apath) {
 	exit 1;
 };
 
-# write pidfile
 my $pidfile = sprintf '%s/%s.pid', $piddir, basename $apath;
 $log->info ("[INFO] Creating pidfile at $pidfile");
 
