@@ -1,26 +1,29 @@
 {
-# server address
+    # server address
     "server" : "redis",
     "port" : "6379",
+    "channels": [
+        "webapp"
+    ],
 
-# should we fork() and become unix daemon?
+    # should we fork() and become unix daemon?
     "daemonize": 1,
 
-# where caches go there
+    # where caches go there
     "cachedir" : "data/cache",
 
-# unprivileged system user to run bot as
+    # unprivileged system user to run bot as
     "user" : "nobody",
 
-# messages with commands will begin with this symbol
-    "csign": "!",
-
-# logs goes there
-    "log" : "/var/log/aleesa-weba/aleesa-weba.log",
+    # logs goes there
+    "log" : "/var/log/aleesa-webapp/aleesa-webapp.log",
     "loglevel": "notice",
 
-# ditto
-    "pid" : "/var/run/aleesa-weba/aleesa-weba.pid",
+    # ditto
+    "pid" : "/var/run/aleesa-webapp/aleesa-webapp.pid",
+
+    # maximal amount of message forwardings, to avoid endless loops
+    "forwards_max" : 5,
 
     "openweathermap" : {
         "appid": "get_it_on_openweathermap.org"

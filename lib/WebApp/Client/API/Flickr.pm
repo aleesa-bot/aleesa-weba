@@ -1,4 +1,4 @@
-package Image::Flickr;
+package WebApp::Client::API::Flickr;
 
 use 5.018;
 use strict;
@@ -7,18 +7,16 @@ use utf8;
 use open qw (:std :utf8);
 use English qw ( -no_match_vars );
 use Carp qw (cluck);
+use CHI;
+use CHI::Driver::BerkeleyDB;
 use Digest::HMAC_SHA1 qw (hmac_sha1);
-use File::Path qw (make_path);
-use JSON::XS;
-use HTTP::Tiny;
 use Log::Any qw ($log);
 use Math::Random::Secure qw (irand);
 use MIME::Base64;
-use SQLite_File;
+use Mojo::UserAgent;
 use URI::Encode::XS qw (uri_encode);
 
 use Conf qw (LoadConf);
-use Util qw (urlencode);
 
 use Data::Dumper;
 
@@ -27,7 +25,7 @@ use Exporter qw (import);
 our @EXPORT_OK = qw (FlickrInit FlickrByTags FlickrByText FlickrTestLogin);
 
 my $c = LoadConf ();
-my $dir = $c->{image}->{dir};
+my $cachedir = $c->{cachedir};
 
 my $flickr_consumer_key      = $c->{image}->{flickr}->{consumer_key};
 my $flickr_consumer_secret   = $c->{image}->{flickr}->{consumer_secret};
@@ -44,7 +42,7 @@ sub mknonce {
 	return $nonce;
 }
 
-sub flickrSignReq {
+sub flickerSignReq {
 	my %p = @_;
 	my $string;
 	my $hmac;
@@ -106,7 +104,7 @@ sub flickrRequestToken {
 	my $oauth_timestamp = time ();
 	my $oauth_nonce = mknonce ();
 
-	my $oauth_signature = flickrSignReq (
+	my $oauth_signature = flickerSignReq (
 		type => 'request_token',
 		oauth_timestamp => $oauth_timestamp,
 		oauth_nonce => $oauth_nonce
@@ -121,15 +119,15 @@ sub flickrRequestToken {
 		uri_encode ($flickr_callback_url)
 	);
 
-	my $http = HTTP::Tiny->new (timeout => 5);
-	my $r = $http->get ($url);
+	my $ua = Mojo::UserAgent->new->connect_timeout (5);
+	my $r = $ua->get ($url)->result;
 	my %params;
 
-	if ($r->{success}) {
+	if ($r->is_success) {
 		# they ignore format=json, so...
-		%params = map {split /=/} split /&/, $r->{content};
+		%params = map {split /=/} split /&/, $r->body;
 	} else {
-		say "Something bad returns from flickr api: $r->{status} $r->{content}"; ## no critic (InputOutput::RequireCheckedSyscalls)
+		say "Something bad returns from flickr api: $r->code $r->message"; ## no critic (InputOutput::RequireCheckedSyscalls)
 	}
 
 	return %params;
@@ -143,7 +141,7 @@ sub flickrAccessToken {
 	my $oauth_timestamp = time ();
 	my $oauth_nonce = mknonce ();
 
-	my $oauth_signature = flickrSignReq (
+	my $oauth_signature = flickerSignReq (
 		type => 'access_token',
 		oauth_timestamp => $oauth_timestamp,
 		oauth_nonce => $oauth_nonce,
@@ -162,15 +160,15 @@ sub flickrAccessToken {
 		uri_encode ($oauth_signature)
 	);
 
-	my $http = HTTP::Tiny->new (timeout => 5);
-	my $r = $http->get ($url);
+	my $ua  = Mojo::UserAgent->new->connect_timeout (5);
+	my $r = $ua->get ($url)->result;
 	my %params;
 
-	if ($r->{success}) {
+	if ($r->is_success) {
 		# they ignore format=json
-		%params = map {split /=/} split /&/, $r->{content};
+		%params = map {split /=/} split /&/, $r->body;
 	} else {
-		say "Something bad returns from flickr api: $r->{status} $r->{content}"; ## no critic (InputOutput::RequireCheckedSyscalls)
+		say "Something bad returns from flickr api: $r->code $r->message"; ## no critic (InputOutput::RequireCheckedSyscalls)
 	}
 
 	return %params;
@@ -184,13 +182,13 @@ sub flickrAuthorization {
 		$flickr_request_token,
 	);
 
-	my $http = HTTP::Tiny->new (timeout => 5);
-	my $r = $http->get ($url);
+	my $ua = Mojo::UserAgent->new->connect_timeout (5);
+	my $r = $ua->get ($url)->result;
 
-	if ($r->{success}) {
-		return $r->{url};
+	if ($r->code == 302) {
+		return $r->content->headers->location;
 	} else {
-		say "Something went wrong: $r->{status} $r->{content}"; ## no critic (InputOutput::RequireCheckedSyscalls)
+		printf "Something went wrong: %s %s\n", $r->code, $r->message;
 		return;
 	}
 }
@@ -202,7 +200,7 @@ sub flickrTestLogin {
 	my $oauth_timestamp = time ();
 	my $oauth_nonce = mknonce ();
 
-	my $oauth_signature = flickrSignReq (
+	my $oauth_signature = flickerSignReq (
 		nojsoncallback => 1,
 		oauth_nonce => $oauth_nonce,
 		format => 'json',
@@ -225,24 +223,23 @@ sub flickrTestLogin {
 		uri_encode ($oauth_signature)
 	);
 
-	my $http = HTTP::Tiny->new (timeout => 5);
-	my $r = $http->get ($url);
+	my $ua = Mojo::UserAgent->new->connect_timeout (5);
+	my $r = $ua->get ($url)->result;
 
-	if ($r->{success}) {
+	if ($r->is_success) {
 		my $response = eval {
-			my $j = JSON::XS->new->utf8->relaxed;
-			return $j->decode ($r->{content});
+			return $r->json;
 		};
 
 		if (defined $response) {
 			say Dumper $response; ## no critic (InputOutput::RequireCheckedSyscalls)
 			return 1;
 		} else {
-			say "Flickr api returns incorrect json: $r->{content}"; ## no critic (InputOutput::RequireCheckedSyscalls)
+			say "Flickr api returns incorrect json: $r->message"; ## no critic (InputOutput::RequireCheckedSyscalls)
 			return 0;
 		}
 	} else {
-		say "HTTP status code not 200: $r->{status}, $r>{contenr}"; ## no critic (InputOutput::RequireCheckedSyscalls)
+		say "HTTP status code not 200: $r->code, $r->message"; ## no critic (InputOutput::RequireCheckedSyscalls)
 		return 0;
 	}
 }
@@ -255,7 +252,7 @@ sub flickrSearchByText {
 	my $oauth_timestamp = time ();
 	my $oauth_nonce = mknonce ();
 
-	my $oauth_signature = flickrSignReq (
+	my $oauth_signature = flickerSignReq (
 		nojsoncallback => 1,
 		oauth_nonce => $oauth_nonce,
 		format => 'json',
@@ -283,21 +280,20 @@ sub flickrSearchByText {
 		uri_encode ($text)
 	);
 
-	my $http = HTTP::Tiny->new (timeout => 5);
-	my $r = $http->get ($url);
+	my $ua = Mojo::UserAgent->new->connect_timeout (5);
+	my $r = $ua->get ($url)->result;
 
-	if ($r->{success}) {
+	if ($r->is_success) {
 		my $response = eval {
-			my $j = JSON::XS->new->utf8->relaxed;
-			return $j->decode ($r->{content});
+			return $r->json;
 		};
 
 		if (defined $response) {
 			# lets make another query, this time with random picture
-			my $page = irand (int $response->{photos}->{total} / 500);
+			my $page = irand int ($response->{photos}->{total} / 500);
 			$oauth_timestamp = time ();
 			$oauth_nonce = mknonce ();
-			$oauth_signature = flickrSignReq (
+			$oauth_signature = flickerSignReq (
 				nojsoncallback => 1,
 				oauth_nonce => $oauth_nonce,
 				format => 'json',
@@ -327,31 +323,31 @@ sub flickrSearchByText {
 				uri_encode ($text)
 			);
 
-			$http = HTTP::Tiny->new (timeout => 5);
-			$r = $http->get ($url);
+			$ua = Mojo::UserAgent->new->connect_timeout (5);
+			$r = $ua->get ($url)->result;
 
-			if ($r->{success}) {
+
+			if ($r->is_success) {
 				$response = eval {
-					my $j = JSON::XS->new->utf8->relaxed;
-					return $j->decode ($r->{content});
+					return $r->json;
 				};
 
 				if (defined $response) {
 					return $response;
 				} else {
-					$log->warn ("[WARN] Flickr api returns incorrect json: $r->{content}");
+					$log->warn ("[WARN] Flickr api returns incorrect json: $r->message");
 					return undef;
 				}
 			} else {
-				$log->warn ("[WARN] Flickr api returns incorrect json: $r->{content}");
+				$log->warn ("[WARN] Flickr api returns incorrect json: $r->message");
 				return undef;
 			}
 		} else {
-			$log->warn ("[WARN] Flickr api returns incorrect json: $r->{content}");
+			$log->warn ("[WARN] Flickr api returns incorrect json: $r->message");
 			return undef;
 		}
 	} else {
-		$log->warn ("[WARN] HTTP status code not 200: $r->{status}, $r->{content}");
+		$log->warn ("[WARN] Flickr api HTTP status code not 200: $r->code, $r->message");
 		return undef;
 	}
 }
@@ -364,7 +360,7 @@ sub flickrSearchByTags {
 	my $oauth_timestamp = time ();
 	my $oauth_nonce = mknonce ();
 
-	my $oauth_signature = flickrSignReq (
+	my $oauth_signature = flickerSignReq (
 		nojsoncallback => 1,
 		oauth_nonce => $oauth_nonce,
 		format => 'json',
@@ -392,13 +388,12 @@ sub flickrSearchByTags {
 		uri_encode ($tags)
 	);
 
-	my $http = HTTP::Tiny->new (timeout => 5);
-	my $r = $http->get ($url);
+	my $ua = Mojo::UserAgent->new->connect_timeout (5);
+	my $r = $ua->get ($url)->result;
 
-	if ($r->{success}) {
+	if ($r->is_success) {
 		my $response = eval {
-			my $j = JSON::XS->new->utf8->relaxed;
-			return $j->decode ($r->{content});
+			return $r->json;
 		};
 
 		if (defined $response) {
@@ -406,7 +401,7 @@ sub flickrSearchByTags {
 			my $page = irand int ($response->{photos}->{total} / 500);
 			$oauth_timestamp = time ();
 			$oauth_nonce = mknonce ();
-			$oauth_signature = flickrSignReq (
+			$oauth_signature = flickerSignReq (
 				nojsoncallback => 1,
 				oauth_nonce => $oauth_nonce,
 				format => 'json',
@@ -436,117 +431,96 @@ sub flickrSearchByTags {
 				uri_encode ($tags)
 			);
 
-			$http = HTTP::Tiny->new (timeout => 5);
-			$r = $http->get ($url);
+			$ua = Mojo::UserAgent->new->connect_timeout (5);
+			$r = $ua->get ($url)->result;
 
-			if ($r->{success}) {
+			if ($r->is_success) {
 				$response = eval {
-					my $j = JSON::XS->new->utf8->relaxed;
-					return $j->decode ($r->{content});
+					return $r->json;
 				};
 
 				if (defined $response) {
 					return $response;
 				} else {
-					$log->warn ("[WARN] Flickr api returns incorrect json: $r->{content}");
+					$log->warn ("[WARN] Flickr api returns incorrect json: $r->message");
 					return undef;
 				}
 			} else {
-				$log->warn ("[WARN] Flickr api returns incorrect json: $r->{content}");
+				$log->warn ("[WARN] Flickr api returns incorrect json: $r->message");
 				return undef;
 			}
 		} else {
-			$log->warn ("[WARN] Flickr api returns incorrect json: $r->{content}");
+			$log->warn ("[WARN] Flickr api returns incorrect json: $r->message");
 			return undef;
 		}
 	} else {
-		$log->warn ("[WARN] HTTP status code not 200: $r->{status}, $r>{content}");
+		$log->warn ("[WARN] Flickr api HTTP status code not 200: $r->code, $r->message");
 		return undef;
 	}
 }
 
 sub FlickrInit {
-	my $backingfile = sprintf '%s/secrets.sqlite', $dir;
-
-	unless (-d $dir) {
-		make_path ($dir) or do {
-			say "Unable to create $dir: $OS_ERROR"; ## no critic (InputOutput::RequireCheckedSyscalls)
-			return 0;
-		};
-	}
-
-	tie my %secret, 'SQLite_File', $backingfile  ||  do {
-		say "[ERROR] Unable to tie to $backingfile: $OS_ERROR"; ## no critic (InputOutput::RequireCheckedSyscalls)
-		return 0;
-	};
+	my $cache = CHI->new (
+		driver => 'BerkeleyDB',
+		root_dir => $cachedir,
+		namespace => __PACKAGE__
+	);
 
 	if (defined $flickr_verifier && $flickr_verifier) {
-		my $flickr_request_token = $secret{flickr_request_token};
-		my $flickr_request_token_secret = $secret{flickr_request_token_secret};
+		my $flickr_request_token = $cache->get ('flickr_request_token');
+		my $flickr_request_token_secret = $cache->get ('flickr_request_token_secret');
 
 		unless (defined $flickr_request_token || defined $flickr_request_token_secret) {
-			say "Looks like there is no request token or request token secret in $backingfile"; ## no critic (InputOutput::RequireCheckedSyscalls)
-			say 'Please remove verifier settings from config.json and run this script again';   ## no critic (InputOutput::RequireCheckedSyscalls)
-			untie %secret;
+			say 'Looks like there is no request token or request token secret in config db.';    ## no critic (InputOutput::RequireCheckedSyscalls)
+			say 'Please remove verifier settings from config.json and run this script again.';   ## no critic (InputOutput::RequireCheckedSyscalls)
 			return 0;
 		}
 
 		my %accessToken = flickrAccessToken ($flickr_request_token, $flickr_request_token_secret, $flickr_verifier);
 
 		if (defined ($accessToken{oauth_token}) && defined ($accessToken{oauth_token_secret})) {
-			$secret{flickr_access_token} = $accessToken{oauth_token};
-			$secret{flickr_access_token_secret} = $accessToken{oauth_token_secret};
+			# TODO: check set
+			$cache->set ('flickr_access_token', $accessToken{oauth_token}, 'never');
+			$cache->set ('flickr_access_token_secret', $accessToken{oauth_token_secret}, 'never');
 
 			say sprintf ( ## no critic (InputOutput::RequireCheckedSyscalls)
-				'Access token (%s) and access token secret (%s) are in %s',
+				'Access token (%s) and access token secret (%s) are config db',
 				$accessToken{oauth_token},
 				$accessToken{oauth_token_secret},
-				$backingfile
 			);
 
-			untie %secret;
 			return 1;
 		}
 	} else {
 		my %req = flickrRequestToken ();
 		if (defined ($req{oauth_token}) && defined ($req{oauth_token_secret}) && defined ($req{oauth_token})) {
-			$secret{flickr_request_token} = $req{oauth_token};
-			$secret{flickr_request_token_secret} = $req{oauth_token_secret};
+			# TODO: check set
+			$cache->set ('flickr_request_token', $req{oauth_token}, 'never');
+			$cache->set ('flickr_request_token_secret', $req{oauth_token_secret}, 'never');
 			my $confirm_url = flickrAuthorization ($req{oauth_token});
 
 			if (defined $confirm_url) {
 				say "Please open this url in your browser and grant access for this app:\n$confirm_url"; ## no critic (InputOutput::RequireCheckedSyscalls)
 				say 'Do not forget to put oauth_verifier to config.json file and re-run this script to get access token'; ## no critic (InputOutput::RequireCheckedSyscalls)
 				say 'Note that you should be logged off from flickr account.'; ## no critic (InputOutput::RequireCheckedSyscalls)
-				untie %secret;
 				return 1;
 			}
 		}
 	}
 
-	untie %secret;
 	return 0;
 }
 
 sub FlickrTestLogin {
 	my $text = shift;
-	my $backingfile = sprintf '%s/secrets.sqlite', $dir;
+	my $cache = CHI->new (
+		driver => 'BerkeleyDB',
+		root_dir => $cachedir,
+		namespace => __PACKAGE__
+	);
 
-	unless (-d $dir) {
-		make_path ($dir) or do {
-			say "Unable to create $dir: $OS_ERROR"; ## no critic (InputOutput::RequireCheckedSyscalls)
-			return 0;
-		};
-	}
-
-	tie my %secret, 'SQLite_File', $backingfile  ||  do {
-		say "Unable to tie to $backingfile: $OS_ERROR"; ## no critic (InputOutput::RequireCheckedSyscalls)
-		return 0;
-	};
-
-	my $flickr_access_token = $secret{flickr_access_token};
-	my $flickr_access_token_secret = $secret{flickr_access_token_secret};
-	untie %secret;
+	my $flickr_access_token = $cache->get ('flickr_access_token');
+	my $flickr_access_token_secret = $cache->get ('flickr_access_token_secret');
 
 	if (flickrTestLogin ($flickr_access_token, $flickr_access_token_secret)) {
 		return 1;
@@ -557,23 +531,15 @@ sub FlickrTestLogin {
 
 sub FlickrByTags {
 	my $text = shift;
-	my $backingfile = sprintf '%s/secrets.sqlite', $dir;
 
-	unless (-d $dir) {
-		make_path ($dir) or do {
-			$log->error ("[ERROR] Unable to create $dir: $OS_ERROR");
-			return 0;
-		};
-	}
+	my $cache = CHI->new (
+		driver => 'BerkeleyDB',
+		root_dir => $cachedir,
+		namespace => __PACKAGE__
+	);
 
-	tie my %secret, 'SQLite_File', $backingfile  ||  do {
-		$log->error ("[ERROR] Unable to tie to $backingfile: $OS_ERROR");
-		return 0;
-	};
-
-	my $flickr_access_token = $secret{flickr_access_token};
-	my $flickr_access_token_secret = $secret{flickr_access_token_secret};
-	untie %secret;
+	my $flickr_access_token = $cache->get ('flickr_access_token');
+	my $flickr_access_token_secret = $cache->get ('flickr_access_token_secret');
 
 	# NB: I honestly query random page (among number of pages) of results from api, but always got first page,
 	# no matter what is shown in response' "page" parameter. Looks like bug in API. Try to little bit mitigate
@@ -583,7 +549,7 @@ sub FlickrByTags {
 
 	if ($result) {
 		if (defined ($result->{photos}) && defined ($result->{photos}->{photo})) {
-			my $item = irand int @{$result->{photos}->{photo}};
+			my $item = irand int(@{$result->{photos}->{photo}});
 			$item = ${$result->{photos}->{photo}}[$item];
 			$item = sprintf 'https://live.staticflickr.com/%s/%s_%s_z.jpg', $item->{server}, $item->{id}, $item->{secret};
 			return $item;
@@ -598,23 +564,15 @@ sub FlickrByTags {
 
 sub FlickrByText {
 	my $text = shift;
-	my $backingfile = sprintf '%s/secrets.sqlite', $dir;
 
-	unless (-d $dir) {
-		make_path ($dir) or do {
-			$log->error ("[ERROR] Unable to create $dir: $OS_ERROR");
-			return 0;
-		};
-	}
+	my $cache = CHI->new (
+		driver => 'BerkeleyDB',
+		root_dir => $cachedir,
+		namespace => __PACKAGE__
+	);
 
-	tie my %secret, 'SQLite_File', $backingfile  ||  do {
-		$log->error ("[ERROR] Unable to tie to $backingfile: $OS_ERROR");
-		return 0;
-	};
-
-	my $flickr_access_token = $secret{flickr_access_token};
-	my $flickr_access_token_secret = $secret{flickr_access_token_secret};
-	untie %secret;
+	my $flickr_access_token = $cache->get ('flickr_access_token');
+	my $flickr_access_token_secret = $cache->get ('flickr_access_token_secret');
 
 	# NB: I honestly query random page (among number of pages) of results from api, but always got first page,
 	# no matter what is shown in response' "page" parameter. Looks like bug in API. Try to little bit mitigate
@@ -624,7 +582,7 @@ sub FlickrByText {
 
 	if ($result) {
 		if (defined ($result->{photos}) && defined ($result->{photos}->{photo})) {
-			my $item = irand (int (@{$result->{photos}->{photo}}));
+			my $item = irand int(@{$result->{photos}->{photo}});
 			$item = ${$result->{photos}->{photo}}[$item];
 			$item = sprintf 'https://live.staticflickr.com/%s/%s_%s_z.jpg', $item->{server}, $item->{id}, $item->{secret};
 			return $item;
