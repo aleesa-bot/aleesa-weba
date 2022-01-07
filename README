@@ -5,7 +5,7 @@ aleesa-webapp
 
 Механика работы
 -----------------------------------------------------------------------------------------------------------------------
-Клиент подписан на на redis-канал craniac. В этот канал пишет другой демоночек - aleesa-misc.
+Клиент подписан на на redis-канал webapp. В этот канал пишет другой демоночек - aleesa-misc.
 
 Формат протокола 
 
@@ -61,7 +61,7 @@ https://home.openweathermap.org/api_keys . Free plan предлагает всё
 приложение.
 
 В каталоге contrib находится скрипт для alpine linux, системы инициализации openrc. Этот скрипт достаточно положить В
-/etc/init.d/aleesa-misc сконфигурить сервис по инструкции выше и после этого сервис запускается командой:
-service aleesa-misc start
+/etc/init.d/aleesa-webapp сконфигурить сервис по инструкции выше и после этого сервис запускается командой:
+service aleesa-webapp start
 в автозагрузку его можно прописать через команду
-rc-update add aleesa-misc default
+rc-update add aleesa-webapp default

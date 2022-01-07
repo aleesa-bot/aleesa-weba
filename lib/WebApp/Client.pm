@@ -16,7 +16,6 @@ use HTML::TokeParser;
 use JSON::XS;
 use Log::Any qw ($log);
 use Math::Random::Secure qw (irand);
-use Mojo::Log;
 use Mojo::UserAgent;
 use Mojo::UserAgent::Cached;
 use Mojo::Util qw (trim);

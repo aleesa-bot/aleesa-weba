@@ -33,6 +33,7 @@ use Log::Any qw ($log);
 use Log::Any::Adapter;
 use Log::Any::For::Std;
 use POSIX qw (setgid setuid setsid);
+
 use Conf qw (LoadConf);
 use WebApp qw (RunWebApp);
 
@@ -43,7 +44,7 @@ sub __signal_handler;
 local $OUTPUT_AUTOFLUSH = 1;
 my $runAsUid = $UID;
 
-my $piddir = '/var/run/' . basename (abs_path ($PROGRAM_NAME));
+my $piddir = '/var/run/' . basename (abs_path $PROGRAM_NAME);
 my $C = LoadConf ();
 my $loglevel = $C->{'loglevel'} // 'notice';
 my $logfile;

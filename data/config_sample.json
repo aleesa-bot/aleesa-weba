@@ -2,12 +2,12 @@
     # server address
     "server" : "redis",
     "port" : "6379",
-    "channels": [
+    "channels" : [
         "webapp"
     ],
 
     # should we fork() and become unix daemon?
-    "daemonize": 1,
+    "daemonize" : 1,
 
     # where caches go there
     "cachedir" : "data/cache",
@@ -17,7 +17,7 @@
 
     # logs goes there
     "log" : "/var/log/aleesa-webapp/aleesa-webapp.log",
-    "loglevel": "notice",
+    "loglevel" : "notice",
 
     # ditto
     "pid" : "/var/run/aleesa-webapp/aleesa-webapp.pid",
@@ -26,15 +26,15 @@
     "forwards_max" : 5,
 
     "openweathermap" : {
-        "appid": "get_it_on_openweathermap.org"
+        "appid" : "get_it_on_openweathermap.org"
     },
 
-    "image": {
+    "image" : {
         "dir" : "data/image",
         "flickr" : {
             "consumer_key" : "key",
             "consumer_secret" : "key_secret",
-            "verifier": "verifier_key"
+            "verifier" : "verifier_key"
         }
     }
 }
