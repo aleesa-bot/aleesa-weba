@@ -33,6 +33,41 @@ my @MONTH = qw (yanvar fevral mart aprel may iyun iyul avgust sentyabr oktyabr n
 my $c = LoadConf ();
 my $cachedir = $c->{cachedir};
 
+my @useragents = _get_ua_list ();
+
+sub _get_ua_list {
+	my $file = $c->{useragentfile};
+	my $file_opened = 1;
+
+	open my $FILEHANDLE, '<', $file || do {
+		carp "[ERROR] No browser useragent list at $file: $OS_ERROR\n";
+		$file_opened = 0;
+	};
+
+	my @ua_list;
+
+	if ($file_opened) {
+		while (my $str = <$FILEHANDLE>) {
+			chomp $str;
+			next unless $str eq '';
+			push @ua_list, $str;
+		}
+
+		close $FILEHANDLE;                                       ## no critic (InputOutput::RequireCheckedSyscalls
+		return @ua_list;
+	}
+
+	if ($#ua_list < 31) {
+		carp "[ERROR] Useragent list in $file have less than 31 enties, discarding it\n";
+		$#ua_list = -1;
+	} elsif ($#ua_list > 31) {
+		carp "[INFO] Useragent list in $file have more than 31 enties, truncating it to 31 entries\n";
+		$#ua_list = 31;
+	}
+
+	return @ua_list;
+}
+
 sub urlencode {
 	my $str = shift;
 
@@ -197,6 +232,14 @@ sub Drink {
 		);
 		# just to make Mojo::UserAgent::Cached happy
 		$ua->logger (Mojo::Log->new (path => '/dev/null', level => 'error'));
+		my $useragent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36';
+
+		if ($#useragents > 0) {
+			$useragent = $useragents [ (localtime ()) [3] ];
+		}
+
+		$ua->transactor->name ($useragent);
+
 		$r = $ua->get ($url => {'Accept-Language' => 'ru-RU', 'Accept-Charset' => 'utf-8'})->result;
 
 		if ($r->is_success) {
