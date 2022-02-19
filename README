@@ -69,5 +69,6 @@ https://home.openweathermap.org/api_keys . Free plan предлагает всё
 В каталоге contrib находится скрипт для alpine linux, системы инициализации openrc. Этот скрипт достаточно положить В
 /etc/init.d/aleesa-webapp сконфигурить сервис по инструкции выше и после этого сервис запускается командой:
 service aleesa-webapp start
-в автозагрузку его можно прописать через команду
+
+в автозагрузку его можно прописать через команду:
 rc-update add aleesa-webapp default
