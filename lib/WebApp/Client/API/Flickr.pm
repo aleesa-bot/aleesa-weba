@@ -1,24 +1,23 @@
 package WebApp::Client::API::Flickr;
 
-use 5.018;
+use 5.018; ## no critic (ProhibitImplicitImport)
 use strict;
 use warnings;
 use utf8;
 use open qw (:std :utf8);
 use English qw ( -no_match_vars );
-use Carp qw (cluck);
-use CHI;
-use CHI::Driver::BerkeleyDB;
-use Digest::HMAC_SHA1 qw (hmac_sha1);
+use CHI ();
+use CHI::Driver::BerkeleyDB ();
+use Digest::HMAC_SHA1 ();
 use Log::Any qw ($log);
 use Math::Random::Secure qw (irand);
-use MIME::Base64;
-use Mojo::UserAgent;
+use MIME::Base64 qw (encode_base64);
+use Mojo::UserAgent ();
 use URI::Encode::XS qw (uri_encode);
 
 use Conf qw (LoadConf);
 
-use Data::Dumper;
+use Data::Dumper qw (Dumper);
 
 use version; our $VERSION = qw (1.0);
 use Exporter qw (import);
@@ -107,7 +106,7 @@ sub flickrRequestToken {
 	my $oauth_signature = flickerSignReq (
 		type => 'request_token',
 		oauth_timestamp => $oauth_timestamp,
-		oauth_nonce => $oauth_nonce
+		oauth_nonce => $oauth_nonce,
 	);
 
 	my $url = $flickr_request_token_url . sprintf (
@@ -116,7 +115,7 @@ sub flickrRequestToken {
 		$oauth_timestamp,
 		$flickr_consumer_key,
 		uri_encode ($oauth_signature),
-		uri_encode ($flickr_callback_url)
+		uri_encode ($flickr_callback_url),
 	);
 
 	my $ua = Mojo::UserAgent->new->connect_timeout (5);
@@ -147,7 +146,7 @@ sub flickrAccessToken {
 		oauth_nonce => $oauth_nonce,
 		oauth_token => $flickr_request_token,
 		oauth_token_secret => $flickr_request_token_secret,
-		oauth_verifier => $flickr_verifier
+		oauth_verifier => $flickr_verifier,
 	);
 
 	my $url = $flickr_access_token_url . sprintf (
@@ -157,7 +156,7 @@ sub flickrAccessToken {
 		$flickr_verifier,
 		$flickr_consumer_key,
 		$flickr_request_token,
-		uri_encode ($oauth_signature)
+		uri_encode ($oauth_signature),
 	);
 
 	my $ua  = Mojo::UserAgent->new->connect_timeout (5);
@@ -211,7 +210,7 @@ sub flickrTestLogin {
 		oauth_token => $flickr_access_token,
 		oauth_token_secret => $flickr_access_token_secret,
 		oauth_signature_method => 'HMAC-SHA1',
-		oauth_version => '1.0'
+		oauth_version => '1.0',
 	);
 
 	my $url = $flickr_api_url . sprintf (
@@ -220,7 +219,7 @@ sub flickrTestLogin {
 		$flickr_consumer_key,
 		$oauth_timestamp,
 		$flickr_access_token,
-		uri_encode ($oauth_signature)
+		uri_encode ($oauth_signature),
 	);
 
 	my $ua = Mojo::UserAgent->new->connect_timeout (5);
@@ -267,7 +266,7 @@ sub flickrSearchByText {
 		oauth_token => $flickr_access_token,
 		oauth_token_secret => $flickr_access_token_secret,
 		oauth_signature_method => 'HMAC-SHA1',
-		oauth_version => '1.0'
+		oauth_version => '1.0',
 	);
 
 	my $url = $flickr_api_url . sprintf (
@@ -277,7 +276,7 @@ sub flickrSearchByText {
 		$oauth_timestamp,
 		$flickr_access_token,
 		uri_encode ($oauth_signature),
-		uri_encode ($text)
+		uri_encode ($text),
 	);
 
 	my $ua = Mojo::UserAgent->new->connect_timeout (5);
@@ -309,7 +308,7 @@ sub flickrSearchByText {
 				oauth_token => $flickr_access_token,
 				oauth_token_secret => $flickr_access_token_secret,
 				oauth_signature_method => 'HMAC-SHA1',
-				oauth_version => '1.0'
+				oauth_version => '1.0',
 			);
 
 			$url = $flickr_api_url . sprintf (
@@ -320,7 +319,7 @@ sub flickrSearchByText {
 				$flickr_access_token,
 				uri_encode ($oauth_signature),
 				$page,
-				uri_encode ($text)
+				uri_encode ($text),
 			);
 
 			$ua = Mojo::UserAgent->new->connect_timeout (5);
@@ -375,7 +374,7 @@ sub flickrSearchByTags {
 		oauth_token => $flickr_access_token,
 		oauth_token_secret => $flickr_access_token_secret,
 		oauth_signature_method => 'HMAC-SHA1',
-		oauth_version => '1.0'
+		oauth_version => '1.0',
 	);
 
 	my $url = $flickr_api_url . sprintf (
@@ -385,7 +384,7 @@ sub flickrSearchByTags {
 		$oauth_timestamp,
 		$flickr_access_token,
 		uri_encode ($oauth_signature),
-		uri_encode ($tags)
+		uri_encode ($tags),
 	);
 
 	my $ua = Mojo::UserAgent->new->connect_timeout (5);
@@ -417,7 +416,7 @@ sub flickrSearchByTags {
 				oauth_token => $flickr_access_token,
 				oauth_token_secret => $flickr_access_token_secret,
 				oauth_signature_method => 'HMAC-SHA1',
-				oauth_version => '1.0'
+				oauth_version => '1.0',
 			);
 
 			$url = $flickr_api_url . sprintf (
@@ -428,7 +427,7 @@ sub flickrSearchByTags {
 				$flickr_access_token,
 				uri_encode ($oauth_signature),
 				$page,
-				uri_encode ($tags)
+				uri_encode ($tags),
 			);
 
 			$ua = Mojo::UserAgent->new->connect_timeout (5);
@@ -463,7 +462,7 @@ sub FlickrInit {
 	my $cache = CHI->new (
 		driver => 'BerkeleyDB',
 		root_dir => $cachedir,
-		namespace => __PACKAGE__
+		namespace => __PACKAGE__,
 	);
 
 	if (defined $flickr_verifier && $flickr_verifier) {
@@ -516,7 +515,7 @@ sub FlickrTestLogin {
 	my $cache = CHI->new (
 		driver => 'BerkeleyDB',
 		root_dir => $cachedir,
-		namespace => __PACKAGE__
+		namespace => __PACKAGE__,
 	);
 
 	my $flickr_access_token = $cache->get ('flickr_access_token');
@@ -535,7 +534,7 @@ sub FlickrByTags {
 	my $cache = CHI->new (
 		driver => 'BerkeleyDB',
 		root_dir => $cachedir,
-		namespace => __PACKAGE__
+		namespace => __PACKAGE__,
 	);
 
 	my $flickr_access_token = $cache->get ('flickr_access_token');
@@ -568,7 +567,7 @@ sub FlickrByText {
 	my $cache = CHI->new (
 		driver => 'BerkeleyDB',
 		root_dir => $cachedir,
-		namespace => __PACKAGE__
+		namespace => __PACKAGE__,
 	);
 
 	my $flickr_access_token = $cache->get ('flickr_access_token');

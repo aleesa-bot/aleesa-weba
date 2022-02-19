@@ -1,4 +1,15 @@
 #!/usr/bin/env perlcritic
+# Задействованные модули критика:
+#
+# Perl::Critic::More
+# Perl::Critic::Pulp
+# Perl::Critic::TooMuchCode
+# Perl::Critic::Lax
+# Perl::Critic::CognitiveComplexity
+# Perl::Critic::Policy::CompileTime
+# Perl::Critic::Policy::ProhibitImplicitImport
+# Perl::Critic::Policy::Dynamic::NoIndirect
+
 severity    = 5
 verbose     = 8
 
@@ -94,3 +105,26 @@ lib_sections    = NAME | VERSION | DESCRIPTION | AUTHOR | LICENSE AND COPYRIGHT
 # Have to use it, so fuckoff
 
 [-Variables::ProhibitPackageVars]
+
+[-Miscellanea::ProhibitUnrestrictedNoCritic]
+
+[-Editor::RequireEmacsFileVariables]
+
+[-CodeLayout::RequireASCII]
+
+[-TooMuchCode::ProhibitDuplicateLiteral]
+
+[-ValuesAndExpressions::RequireConstantOnLeftSideOfEquality]
+
+[-Lax::RequireConstantOnLeftSideOfEquality::ExceptEq]
+
+[-TooMuchCode::ProhibitUnnecessaryUTF8Pragma]
+
+[-ErrorHandling::RequireUseOfExceptions]
+
+[-Lax::ProhibitEmptyQuotes::ExceptAsFallback]
+
+[-ValuesAndExpressions::RestrictLongStrings]
+
+[-TooMuchCode::ProhibitLargeBlock]
+# read my lips: fuck off

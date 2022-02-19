@@ -1,6 +1,6 @@
 package WebApp::Client;
 
-use 5.018;
+use 5.018; ## no critic (ProhibitImplicitImport)
 use strict;
 use warnings;
 use utf8;
@@ -8,19 +8,21 @@ use open qw (:std :utf8);
 use English qw ( -no_match_vars );
 
 use Carp qw (carp cluck);
-use CHI;
-use CHI::Driver::BerkeleyDB;
-use DateTime;
-use Encode;
-use HTML::TokeParser;
-use JSON::XS;
+use CHI ();
+use CHI::Driver::BerkeleyDB ();
+use DateTime ();
+use Encode qw (decode);
+use File::Spec ();
+use HTML::TokeParser ();
+use JSON::XS ();
 use Log::Any qw ($log);
 use Math::Random::Secure qw (irand);
-use Mojo::UserAgent;
-use Mojo::UserAgent::Cached;
+use Mojo::Log (); # Чтобы заткнуть Mojo::UserAgent::Cached
+use Mojo::UserAgent ();
+use Mojo::UserAgent::Cached ();
 use Mojo::Util qw (trim);
 use POSIX qw (strftime);
-use URI::URL;
+use URI::URL qw (url);
 
 use Conf qw (LoadConf);
 use WebApp::Client::API::Flickr qw (FlickrByTags);
@@ -210,7 +212,7 @@ sub Drink {
 		day => $mday,
 		hour => 0,
 		minute => 0,
-		second => 0
+		second => 0,
 	)->add (days => 1)->strftime ('%s');
 
 	if ((substr $offset, 0, 1) eq '+') {
@@ -228,10 +230,10 @@ sub Drink {
 				namespace          => __PACKAGE__,
 				expires_at         => $expirationDate,
 				expires_on_backend => 1,
-			)
+			),
 		);
 		# just to make Mojo::UserAgent::Cached happy
-		$ua->logger (Mojo::Log->new (path => '/dev/null', level => 'error'));
+		$ua->logger (Mojo::Log->new (path => File::Spec->devnull, level => 'error'));
 		my $useragent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36';
 
 		if ($#useragents > 0) {
@@ -513,7 +515,7 @@ sub Xkcd {
 	my $ua  = Mojo::UserAgent->new->connect_timeout (5)->max_redirects (0);
 	my $location;
 	my $status = 400;
-	my $c = 0;
+	my $counter = 0;
 
 	do {
 		my $r = $ua->get ('https://xkcd.ru/random/')->result;
@@ -529,7 +531,7 @@ sub Xkcd {
 			$r = $ua->head ($location)->result;
 		}
 
-		$c++;
+		$counter++;
 		$status = $r->code;
 	} while ($c < 3 || $status >= 404);
 
@@ -572,7 +574,7 @@ sub Weather {
 				$w->{temperature_min},
 				$w->{temperature_feelslike},
 				$w->{humidity},
-				$w->{pressure}
+				$w->{pressure},
 			);
 		} elsif ($w->{temperature_min} < 0 && $w->{temperature_max} <= 0) {
 			$reply = sprintf (
@@ -586,7 +588,7 @@ sub Weather {
 				$w->{temperature_min},
 				$w->{temperature_feelslike},
 				$w->{humidity},
-				$w->{pressure}
+				$w->{pressure},
 			);
 		} else {
 			$reply = sprintf (
@@ -600,7 +602,7 @@ sub Weather {
 				$w->{temperature_max},
 				$w->{temperature_feelslike},
 				$w->{humidity},
-				$w->{pressure}
+				$w->{pressure},
 			);
 		}
 	} else {
@@ -631,10 +633,10 @@ sub __weather {
 				namespace          => __PACKAGE__,
 				expires_in         => '3 hours',
 				expires_on_backend => 1,
-			)
+			),
 		);
 		# just to make Mojo::UserAgent::Cached happy
-		$ua->logger (Mojo::Log->new (path => '/dev/null', level => 'error'));
+		$ua->logger (Mojo::Log->new (path => File::Spec->devnull, level => 'error'));
 		$r = $ua->get (sprintf ('http://api.openweathermap.org/data/2.5/weather?q=%s&lang=ru&APPID=%s', $city, $appid))->result;
 
 		if ($r->is_success) {
@@ -653,7 +655,7 @@ sub __weather {
 		unless ($fc) {
 			$log->warn ("[WARN] openweathermap returns corrupted json: $EVAL_ERROR");
 			return undef;
-		};
+		}
 	} else {
 		$log->warn (sprintf '[WARN] Server return status %s with message: %s', $r->code, $r->message);
 		return undef;

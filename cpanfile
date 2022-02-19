@@ -1,3 +1,4 @@
+## no critic
 requires 'Carp',                    '==1.50';
 requires 'CHI',                     '==0.61';
 requires 'CHI::Driver::BerkeleyDB', '==0.05';
@@ -8,8 +9,9 @@ requires 'Digest::HMAC_SHA1',       '==1.04';
 requires 'Encode',                  '==3.16';
 requires 'English',                 '0';
 requires 'EV',                      '==4.33';
-requires 'File::Basename',          '0';
+requires 'File::Basename',          '==2.85';
 requires 'File::Path',              '==2.18';
+requires 'File::Spec',              '==3.75';
 requires 'HTML::TokeParser',        '==3.76';
 requires 'IO::Socket::SSL',         '==2.073';
 requires 'JSON',                    '==4.04';
@@ -22,6 +24,8 @@ requires 'Math::Random::Secure',    '==0.080001';
 requires 'MIME::Base64',            '==3.16';
 requires 'Mojolicious',             '==9.22';
 requires 'Mojo::IOLoop::Signal',    '==0.003';
+# Чтобы заткнуть Mojo::UserAgent::Cached
+requires 'Mojo::Log',               '0';
 requires 'Mojo::Redis',             '==3.27';
 requires 'Mojo::UserAgent',         '0';
 requires 'Mojo::UserAgent::Cached', '==1.18';
