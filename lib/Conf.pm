@@ -1,4 +1,4 @@
-package BotLib::Conf;
+package Conf;
 # Загружает конфиг файл
 
 use 5.018; ## no critic (ProhibitImplicitImport)
