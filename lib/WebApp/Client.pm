@@ -176,7 +176,7 @@ sub Buni {
 				@a = $p->get_tag('meta'); ## no critic (Variables::RequireLocalizedPunctuationVars)
 
 				if (defined $a[0][1]->{property} && $a[0][1]->{property} eq 'og:image') {
-					$ret = sprintf '[buni](%s)', $a[0][1]->{content};
+					$ret = $a[0][1]->{content};
 					last;
 				}
 
@@ -314,7 +314,7 @@ sub Monkeyuser {
 		} while ($#{$a[0]} > 1);
 
 		if ($#link > 0) {
-			$ret = sprintf '[MonkeyUser](https://www.monkeyuser.com%s)', $link [irand (1 + $#link)];
+			$ret = sprintf 'https://www.monkeyuser.com%s', $link [irand (1 + $#link)];
 		}
 	} else {
 		$log->warn (sprintf '[WARN] MonkeyUser server return status %s with message: %s', $r->{status}, $r->{reason});
@@ -536,7 +536,7 @@ sub Xkcd {
 	} while ($c < 3 || $status >= 404);
 
 	if ($status == 200) {
-		return sprintf '[xkcd.ru](%s)', $location;
+		return $location;
 	}
 
 	return 'Комикс-стрип нарисовать не так-то просто :(';

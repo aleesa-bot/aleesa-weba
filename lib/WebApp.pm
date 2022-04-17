@@ -64,80 +64,77 @@ my $parse_message = sub {
 	$log->debug ('[DEBUG] Incoming message ' . Dumper($m));
 
 	if (substr ($m->{message}, 1) eq 'buni') {
-		$reply = Buni ();
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
+			$reply = sprintf '[buni](%s)', Buni ();
+		} else {
+			$reply = Buni ();
+		}
 	} elsif (substr ($m->{message}, 1) eq 'anek' || substr ($m->{message}, 1) eq 'анек' || substr ($m->{message}, 1) eq 'анекдот') {
-		if ($m->{plugin} eq 'telegram') {
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			$reply = "```\n" . Anek () . "\n```";
-			$answer->{misc}->{msg_format} = 1;
 		} else {
 			$reply = Anek ();
 		}
 	} elsif (substr ($m->{message}, 1) eq 'cat' || substr ($m->{message}, 1) eq 'кис') {
-		if ($m->{plugin} eq 'telegram') {
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			my @cats = ('龴ↀ◡ↀ龴', '=^..^=', '≧◔◡◔≦ ','^ↀᴥↀ^');
-			my $cat = Kitty ();
-			$reply = sprintf '[%s](%s)', $cats[irand ($#cats + 1)], $cat;
-			$answer->{misc}->{msg_format} = 1;
+			$reply = sprintf '[%s](%s)', $cats[irand ($#cats + 1)], Kitty ();
 		} else {
 			$reply = Kitty ();
 		}
 	} elsif (substr ($m->{message}, 1) eq 'drink' || substr ($m->{message}, 1) eq 'праздник') {
 		$reply = Drink ();
 	} elsif (substr ($m->{message}, 1) eq 'fox' || substr ($m->{message}, 1) eq 'лис') {
-		if ($m->{plugin} eq 'telegram') {
-			my $fox = Fox ();
-			$reply = sprintf '[-^^,--,~](%s)', $fox;
-			$answer->{misc}->{msg_format} = 1;
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
+			$reply = sprintf '[-^^,--,~](%s)', Fox ();
 		} else {
 			$reply = Fox ();
 		}
 	} elsif (substr ($m->{message}, 1) eq 'frog' || substr ($m->{message}, 1) eq 'лягушка') {
-		if ($m->{plugin} eq 'telegram') {
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			my @art = qw (frog toad лягушка);
-			my $frog = Frog ();
-			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], $frog;
-			$answer->{misc}->{msg_format} = 1;
+			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], Frog ();
 		} else {
 			$reply = Frog ();
 		}
 	} elsif (substr ($m->{message}, 1) eq 'horse' || substr ($m->{message}, 1) eq 'лошадь' || substr ($m->{message}, 1) eq 'лошадка') {
-		if ($m->{plugin} eq 'telegram') {
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			my @art = qw (horse лошадь лошадка);
-			my $horse = Horse ();
-			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], $horse;
-			$answer->{misc}->{msg_format} = 1;
+			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], Horse ();
 		} else {
 			$reply = Horse ();
 		}
 	} elsif (substr ($m->{message}, 1) eq 'monkeyuser') {
-		$reply = Monkeyuser ();
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
+			$reply = sprintf '[monkeyuser](%s)', Monkeyuser ();
+		} else {
+			$reply = Monkeyuser ();
+		}
 	} elsif (substr ($m->{message}, 1) eq 'owl' || substr ($m->{message}, 1) eq 'сова' || substr ($m->{message}, 1) eq 'сыч') {
-		if ($m->{plugin} eq 'telegram') {
-			my $owl = Owl ();
-			$reply = sprintf '[{ O v O }](%s)', $owl;
-			$answer->{misc}->{msg_format} = 1;
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
+			$reply = sprintf '[{ O v O }](%s)', Owl ();
 		} else {
 			$reply = Owl ();
 		}
 	} elsif (substr ($m->{message}, 1) eq 'rabbit' || substr ($m->{message}, 1) eq 'bunny' || substr ($m->{message}, 1) eq 'кролик') {
-		if ($m->{plugin} eq 'telegram') {
-			my $rabbit = Rabbit ();
-			$reply = sprintf '[(\_/)](%s)', $rabbit;
-			$answer->{misc}->{msg_format} = 1;
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
+			$reply = sprintf '[(\_/)](%s)', Rabbit ();
 		} else {
 			$reply = Rabbit ();
 		}
 	} elsif (substr ($m->{message}, 1) eq 'snail' || substr ($m->{message}, 1) eq 'улитка') {
-		if ($m->{plugin} eq 'telegram') {
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			my @art = qw ('-'_@_ @╜ @_'-');
-			my $snail = Snail ();
-			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], $snail;
-			$answer->{misc}->{msg_format} = 1;
+			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], Snail ();
 		} else {
 			$reply = Snail ();
 		}
 	} elsif (substr ($m->{message}, 1) eq 'xkcd') {
-		$reply = Xkcd ();
+		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
+			$reply = sprintf '[xkcd](%s)', Xkcd ();
+		} else {
+			$reply = Xkcd ();
+		}
 	} elsif (substr ($m->{message}, 1, 2) eq 'w ' || substr ($m->{message}, 1, 2) eq 'п ') {
 		my $city = substr $m->{message}, 2;
 		$reply = Weather ($city);
