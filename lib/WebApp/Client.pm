@@ -90,7 +90,7 @@ sub Anek {
 	for (1..3) {
 		for (1..3) {
 			my $ua  = Mojo::UserAgent->new->connect_timeout (3);
-			$ua->max_redirects(3);
+			$ua->max_redirects (3);
 			$r = $ua->get ('https://www.anekdot.ru/rss/randomu.html')->result;
 
 			if ($r->is_success) {
@@ -155,7 +155,7 @@ sub Buni {
 
 	for (1..3) {
 		my $ua  = Mojo::UserAgent->new->connect_timeout (3);
-		$ua->max_redirects(3);
+		$ua->max_redirects (3);
 		$r = $ua->get ('http://www.bunicomic.com/?random&nocache=1')->result;
 
 		if ($r->is_success) {
@@ -173,7 +173,7 @@ sub Buni {
 		{
 			do {
 				$#a = -1;
-				@a = $p->get_tag('meta'); ## no critic (Variables::RequireLocalizedPunctuationVars)
+				@a = $p->get_tag ('meta'); ## no critic (Variables::RequireLocalizedPunctuationVars)
 
 				if (defined $a[0][1]->{property} && $a[0][1]->{property} eq 'og:image') {
 					$ret = $a[0][1]->{content};
@@ -207,10 +207,10 @@ sub Drink {
 	}
 
 	my $expirationDate = DateTime->new (
-		year => $year + 1900,
-		month => $mon + 1,
-		day => $mday,
-		hour => 0,
+		year   => $year + 1900,
+		month  => $mon + 1,
+		day    => $mday,
+		hour   => 0,
 		minute => 0,
 		second => 0,
 	)->add (days => 1)->strftime ('%s');
@@ -258,7 +258,7 @@ sub Drink {
 
 		do {
 			$#a = -1;
-			@a = $p->get_tag('span'); ## no critic (Variables::RequireLocalizedPunctuationVars)
+			@a = $p->get_tag ('span'); ## no critic (Variables::RequireLocalizedPunctuationVars)
 
 			if ($#{$a[0]} > 2 && defined $a[0][1]->{itemprop} && $a[0][1]->{itemprop} eq 'text') {
 				push @holyday,'* ' . decode ('UTF-8', $p->get_trimmed_text ('/span'));
@@ -303,7 +303,7 @@ sub Monkeyuser {
 
 		do {
 			$#a = -1;
-			@a = $p->get_tag('a'); ## no critic (Variables::RequireLocalizedPunctuationVars)
+			@a = $p->get_tag ('a'); ## no critic (Variables::RequireLocalizedPunctuationVars)
 
 			if (defined $a[0][1]->{class} && $a[0][1]->{class} eq 'lazyload small-image') {
 				if (defined $a[0][1]->{'data-src'} && ($a[0][1]->{'data-src'} !~ /adlitteram/)) {
