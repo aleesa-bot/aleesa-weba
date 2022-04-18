@@ -2,6 +2,7 @@
 requires 'Carp',                    '==1.50';
 requires 'CHI',                     '==0.61';
 requires 'CHI::Driver::BerkeleyDB', '==0.05';
+requires 'Clone',                   '==0.45';
 requires 'Cwd',                     '==3.75';
 requires 'Cwd::utf8',               '==0.011';
 requires 'DateTime',                '==1.55';

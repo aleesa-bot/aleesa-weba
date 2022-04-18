@@ -8,6 +8,7 @@ use utf8;
 use open qw (:std :utf8);
 
 # Модули для работы приложения
+use Clone qw (clone);
 use Data::Dumper qw (Dumper);
 use Log::Any qw ($log);
 use Math::Random::Secure qw (irand);
@@ -24,23 +25,51 @@ use Exporter qw (import);
 our @EXPORT_OK = qw (RunWebApp);
 
 my $c = LoadConf ();
-my $fwd_cnt = $c->{'forward_max'} // 5;
+my $fwd_cnt = 5;
+
+if (defined $c->{'forward_max'}) {
+	$fwd_cnt = $c->{'forward_max'};
+}
 
 # Основной парсер
 my $parse_message = sub {
 	my $self = shift;
-	my $m = shift;
-	my $answer = $m;
-	$answer->{from} = 'webapp';
+	my $m    = shift;
+
+	$log->debug ('[DEBUG] Incoming message ' . Dumper ($m));
+
+	unless (defined $m->{message}) {
+		$log->error (sprintf 'Unable to process unknown message: %s', $m->{message});
+		return;
+	}
+
+	my $answer         = clone ($m);
+	$answer->{from}    = 'webapp';
+	$answer->{message} = undef;
+
 	my $send_to = $m->{plugin};
 	my $reply;
 
+	# Если $answer->{misc}->{answer} не существует, то проставим его как 1, предполагаем, что по-умолчанию ответ от нас
+	# всё-таки ожидают. Если что - уточним ниже.
 	if (defined $answer->{misc}) {
+		unless (defined $answer->{misc}->{answer}) {
+			$answer->{misc}->{answer} = 1;
+		}
+
+		unless (defined $answer->{misc}->{bot_nick}) {
+			$answer->{misc}->{bot_nick} = undef;
+		}
+
+		unless (defined $answer->{misc}->{csign}) {
+			$answer->{misc}->{csign} = '!';
+		}
+
 		unless (defined $answer->{misc}->{fwd_cnt}) {
 			$answer->{misc}->{fwd_cnt} = 1;
 		} else {
 			if ($answer->{misc}->{fwd_cnt} > $fwd_cnt) {
-				$log->error ('Forward loop detected, discarding message.');
+				$log->error ('[ERROR] Forward loop detected, discarding message.');
 				$log->debug (Dumper $m);
 				return;
 			} else {
@@ -48,108 +77,120 @@ my $parse_message = sub {
 			}
 		}
 
-		unless (defined $answer->{misc}->{answer}) {
-			$answer->{misc}->{answer} = 1;
+		unless (defined $answer->{misc}->{good_morning}) {
+			$answer->{misc}->{good_morning} = 0;
 		}
 
-		unless (defined $answer->{misc}->{csign}) {
-			$answer->{misc}->{csign} = '!';
+		unless (defined $answer->{misc}->{msg_format}) {
+			$answer->{misc}->{msg_format} = 0;
+		}
+
+		unless (defined $answer->{misc}->{username}) {
+			$answer->{misc}->{username} = 'user';
 		}
 	} else {
 		$answer->{misc}->{answer} = 1;
-		$answer->{misc}->{csign} = '!';
+		$answer->{misc}->{bot_nick} = undef;
+		$answer->{misc}->{csign} = $c->{csign};
+		$answer->{misc}->{fwd_cnt} = 1;
+		$answer->{misc}->{good_morning} = 0;
 		$answer->{misc}->{msg_format} = 0;
+		$answer->{misc}->{username} = 'user';
 	}
 
-	$log->debug ('[DEBUG] Incoming message ' . Dumper($m));
+	if (length $m->{message} <= length $answer->{csign}) {
+		$log->info (sprintf 'Unable to process unknown message: %s', $m->{message});
+		return;
+	}
 
-	if (substr ($m->{message}, 1) eq 'buni') {
+	if (substr ($m->{message}, 0, length ($answer->{csign})) ne $answer->{csign}) {
+		$log->info (sprintf 'Unable to process unknown message: %s', $m->{message});
+		return;
+	}
+
+	my $cmd = substr $m->{message}, length ($answer->{csign});
+
+	if ($cmd eq 'buni') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			$reply = sprintf '[buni](%s)', Buni ();
 		} else {
 			$reply = Buni ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'anek' || substr ($m->{message}, 1) eq 'анек' || substr ($m->{message}, 1) eq 'анекдот') {
+	} elsif ($cmd eq 'anek' || $cmd eq 'анек' || $cmd eq 'анекдот') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			$reply = "```\n" . Anek () . "\n```";
 		} else {
 			$reply = Anek ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'cat' || substr ($m->{message}, 1) eq 'кис') {
+	} elsif ($cmd eq 'cat' || $cmd eq 'кис') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			my @cats = ('龴ↀ◡ↀ龴', '=^..^=', '≧◔◡◔≦ ','^ↀᴥↀ^');
 			$reply = sprintf '[%s](%s)', $cats[irand ($#cats + 1)], Kitty ();
 		} else {
 			$reply = Kitty ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'drink' || substr ($m->{message}, 1) eq 'праздник') {
+	} elsif ($cmd eq 'drink' || $cmd eq 'праздник') {
 		$reply = Drink ();
-	} elsif (substr ($m->{message}, 1) eq 'fox' || substr ($m->{message}, 1) eq 'лис') {
+	} elsif ($cmd eq 'fox' || $cmd eq 'лис') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			$reply = sprintf '[-^^,--,~](%s)', Fox ();
 		} else {
 			$reply = Fox ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'frog' || substr ($m->{message}, 1) eq 'лягушка') {
+	} elsif ($cmd eq 'frog' || $cmd eq 'лягушка') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			my @art = qw (frog toad лягушка);
 			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], Frog ();
 		} else {
 			$reply = Frog ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'horse' || substr ($m->{message}, 1) eq 'лошадь' || substr ($m->{message}, 1) eq 'лошадка') {
+	} elsif ($cmd eq 'horse' || $cmd eq 'лошадь' || $cmd eq 'лошадка') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			my @art = qw (horse лошадь лошадка);
 			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], Horse ();
 		} else {
 			$reply = Horse ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'monkeyuser') {
+	} elsif ($cmd eq 'monkeyuser') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			$reply = sprintf '[monkeyuser](%s)', Monkeyuser ();
 		} else {
 			$reply = Monkeyuser ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'owl' || substr ($m->{message}, 1) eq 'сова' || substr ($m->{message}, 1) eq 'сыч') {
+	} elsif ($cmd eq 'owl' || $cmd eq 'сова' || $cmd eq 'сыч') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			$reply = sprintf '[{ O v O }](%s)', Owl ();
 		} else {
 			$reply = Owl ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'rabbit' || substr ($m->{message}, 1) eq 'bunny' || substr ($m->{message}, 1) eq 'кролик') {
+	} elsif ($cmd eq 'rabbit' || $cmd eq 'bunny' || $cmd eq 'кролик') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			$reply = sprintf '[(\_/)](%s)', Rabbit ();
 		} else {
 			$reply = Rabbit ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'snail' || substr ($m->{message}, 1) eq 'улитка') {
+	} elsif ($cmd eq 'snail' || $cmd eq 'улитка') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			my @art = qw ('-'_@_ @╜ @_'-');
 			$reply = sprintf '[%s](%s)', $art [irand ($#art + 1)], Snail ();
 		} else {
 			$reply = Snail ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'xkcd') {
+	} elsif ($cmd eq 'xkcd') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
 			$reply = sprintf '[xkcd](%s)', Xkcd ();
 		} else {
 			$reply = Xkcd ();
 		}
-	} elsif (substr ($m->{message}, 1, 2) eq 'w ' || substr ($m->{message}, 1, 2) eq 'п ') {
-		my $city = substr $m->{message}, 2;
+	} elsif ($cmd =~ /^(w|weather|п|погода|погодка|погадка)\s+(.+)$/gui) {
+		my $city = $2;
 		$reply = Weather ($city);
-	} elsif (substr ($m->{message}, 1, 8) eq 'weather ' || substr ($m->{message}, 1, 8) eq 'погодка ' || substr ($m->{message}, 1, 8) eq 'погадка ') {
-		my $city = substr $m->{message}, 9;
-		$reply = Weather ($city);
-	} elsif (substr ($m->{message}, 1, 7) eq 'погода ') {
-		my $city = substr $m->{message}, 8;
-		$reply = Weather ($city);
-	} elsif (substr ($m->{message}, 1) eq 'tits'    ||
-             substr ($m->{message}, 1) eq 'boobs'   ||
-             substr ($m->{message}, 1) eq 'tities'  ||
-             substr ($m->{message}, 1) eq 'boobies' ||
-             substr ($m->{message}, 1) eq 'сиси'    ||
-             substr ($m->{message}, 1) eq 'сисечки') {
+	} elsif ($cmd eq 'tits'    ||
+             $cmd eq 'boobs'   ||
+             $cmd eq 'tities'  ||
+             $cmd eq 'boobies' ||
+             $cmd eq 'сиси'    ||
+             $cmd eq 'сисечки') {
 		if ($m->{plugin} eq 'telegram') {
 			my @art = ('(. )( .)', '(  . Y .  )', '(o)(o)', '( @ )( @ )', '(.)(.)');
 			my $oboobs = Oboobs ();
@@ -158,11 +199,11 @@ my $parse_message = sub {
 		} else {
 			$reply = Oboobs ();
 		}
-	} elsif (substr ($m->{message}, 1) eq 'butt'  ||
-		     substr ($m->{message}, 1) eq 'booty' ||
-		     substr ($m->{message}, 1) eq 'ass'   ||
-		     substr ($m->{message}, 1) eq 'попа'  ||
-		     substr ($m->{message}, 1) eq 'попка') {
+	} elsif ($cmd eq 'butt'  ||
+		     $cmd eq 'booty' ||
+		     $cmd eq 'ass'   ||
+		     $cmd eq 'попа'  ||
+		     $cmd eq 'попка') {
 		if ($m->{plugin} eq 'telegram') {
 			my @art = ('(__(__)', '(_!_)', '(__.__)');
 			my $obutts = Obutts ();
@@ -240,10 +281,8 @@ sub RunWebApp {
 		);
 	}
 
-	Mojo::IOLoop::Signal->on (
-		TERM => $__signal_handler,
-		INT  => $__signal_handler,
-	);
+	Mojo::IOLoop::Signal->on (TERM => $__signal_handler);
+	Mojo::IOLoop::Signal->on (INT  => $__signal_handler);
 
 	do { Mojo::IOLoop->start } until Mojo::IOLoop->is_running;
 	return;
