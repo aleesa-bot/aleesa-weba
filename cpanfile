@@ -23,7 +23,7 @@ requires 'Log::Any::Adapter',       '==1.710';
 requires 'Log::Any::For::Std',      '==0.05';
 requires 'Math::Random::Secure',    '==0.080001';
 requires 'MIME::Base64',            '==3.16';
-requires 'Mojolicious',             '==9.22';
+requires 'Mojolicious',             '==9.24';
 requires 'Mojo::IOLoop::Signal',    '==0.003';
 # Чтобы заткнуть Mojo::UserAgent::Cached
 requires 'Mojo::Log',               '0';
@@ -31,6 +31,5 @@ requires 'Mojo::Redis',             '==3.27';
 requires 'Mojo::UserAgent',         '0';
 requires 'Mojo::UserAgent::Cached', '==1.18';
 requires 'POSIX',                   '0';
-requires 'Protocol::Redis::XS',     '0';
 requires 'URI::Encode::XS',         '==0.11';
 requires 'URI::URL',                '==5.10';
