@@ -98,17 +98,17 @@ my $parse_message = sub {
 		$answer->{misc}->{username} = 'user';
 	}
 
-	if (length $m->{message} <= length $answer->{csign}) {
+	if (length $m->{message} <= length $answer->{misc}->{csign}) {
 		$log->info (sprintf 'Unable to process unknown message: %s', $m->{message});
 		return;
 	}
 
-	if (substr ($m->{message}, 0, length ($answer->{csign})) ne $answer->{csign}) {
+	if (substr ($m->{message}, 0, length ($answer->{misc}->{csign})) ne $answer->{misc}->{csign}) {
 		$log->info (sprintf 'Unable to process unknown message: %s', $m->{message});
 		return;
 	}
 
-	my $cmd = substr $m->{message}, length ($answer->{csign});
+	my $cmd = substr $m->{message}, length ($answer->{misc}->{csign});
 
 	if ($cmd eq 'buni') {
 		if (($m->{plugin} eq 'telegram')  &&  $answer->{misc}->{msg_format}) {
