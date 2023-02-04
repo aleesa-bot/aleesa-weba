@@ -31,7 +31,6 @@ use version; our $VERSION = qw (1.0);
 use Exporter qw (import);
 our @EXPORT_OK = qw (Anek Buni Drink Monkeyuser Kitty Fox Oboobs Obutts Rabbit Owl Frog Horse Snail Xkcd Weather);
 
-my @MONTH = qw (yanvar fevral mart aprel may iyun iyul avgust sentyabr oktyabr noyabr dekabr);
 my $c = LoadConf ();
 my $cachedir = $c->{cachedir};
 
@@ -621,7 +620,6 @@ sub __weather {
 	my $city = shift;
 	$city = urlencode $city;
 	my $appid = $c->{openweathermap}->{appid};
-	my $now = time ();
 	my $fc;
 	my $w;
 

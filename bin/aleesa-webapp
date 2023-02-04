@@ -43,7 +43,6 @@ sub __fork;
 sub __signal_handler;
 
 local $OUTPUT_AUTOFLUSH = 1;
-my $runAsUid = $UID;
 
 my $piddir = '/var/run/' . basename (abs_path $PROGRAM_NAME);
 my $C = LoadConf ();
