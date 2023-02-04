@@ -72,3 +72,10 @@ service aleesa-webapp start
 
 в автозагрузку его можно прописать через команду:
 rc-update add aleesa-webapp default
+
+
+На MacOS вылазит ошибка BerkeleyDB.xs:82:2: error: db.h is from Berkeley DB 1.x - need at least Berkeley DB 2.6.4
+------------------------------------------------------------------------------------------------------------------------
+На момент 04.02.2023 в Mac OS Ventura (13.1), это чинится установкой через brew пакета berkeley-db4:
+brew install berkeley-db4
+brew link berkeley-db4 --force
