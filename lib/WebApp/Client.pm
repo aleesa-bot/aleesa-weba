@@ -130,7 +130,12 @@ sub Anek {
 						$got_anek = 1;
 					}
 				} else {
-					$log->warn (sprintf '[WARN] anekdot.ru server returns incorrect json, full response text message: %s', $response_text);
+					$log->warn (
+						sprintf (
+							'[WARN] anekdot.ru server returns incorrect json, full response text message: %s',
+							$response_text,
+						),
+					);
 				}
 			} else {
 				$log->warn (sprintf '[WARN] anekdot.ru server returns unexpected response text: %s', $r->body);
@@ -191,7 +196,6 @@ sub Buni {
 sub Drink {
 	my $r;
 	my $ret = 'Не знаю праздников - вджобываю весь день на шахтах, как проклятая.';
-	my ($dayNum, $monthNum) = (localtime ())[3, 4];
 	my $url = 'https://prazdniki-segodnya.ru/';
 
 	# Those POSIX assholes just forgot to add unix timestamps without TZ offset, so...
@@ -265,7 +269,7 @@ sub Drink {
 					if (ref $item) {
 						foreach my $item1 (@{$item}) {
 							my %h = eval { %{$item1} };
-							
+
 							if (defined ($h{class}) && $h{class} eq 'list-group-item text-monospace') {
 								$holiday {'* ' . decode ('UTF-8', $p->get_trimmed_text ('/div'))} = 1;
 							}
@@ -279,7 +283,13 @@ sub Drink {
 			$ret = join "\n", sort (keys (%holiday));
 		}
 	} else {
-		$log->warn (sprintf '[WARN] prazdniki-segodnya.ru server return status %s with message: %s', $r->code, $r->message);
+		$log->warn (
+			sprintf (
+				'[WARN] prazdniki-segodnya.ru server return status %s with message: %s',
+				$r->code,
+				$r->message,
+			),
+		);
 	}
 
 	return $ret;
@@ -563,69 +573,78 @@ sub Weather {
 		$city = 'Екатеринбург';
 	}
 
-	my $w = __weather ($city);
 	my $reply;
 
-	if ($w) {
-		if ($w->{temperature_min} == $w->{temperature_max}) {
-			$reply = sprintf (
-				"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-				$w->{name},
-				$w->{country},
-				ucfirst $w->{description},
-				$w->{wind_direction},
-				$w->{wind_speed},
-				$w->{temperature_min},
-				$w->{temperature_feelslike},
-				$w->{humidity},
-				$w->{pressure},
-			);
-		} elsif ($w->{temperature_min} < 0 && $w->{temperature_max} <= 0) {
-			$reply = sprintf (
-				"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-				$w->{name},
-				$w->{country},
-				ucfirst $w->{description},
-				$w->{wind_direction},
-				$w->{wind_speed},
-				$w->{temperature_max},
-				$w->{temperature_min},
-				$w->{temperature_feelslike},
-				$w->{humidity},
-				$w->{pressure},
-			);
-		} else {
-			$reply = sprintf (
-				"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-				$w->{name},
-				$w->{country},
-				ucfirst $w->{description},
-				$w->{wind_direction},
-				$w->{wind_speed},
-				$w->{temperature_min},
-				$w->{temperature_max},
-				$w->{temperature_feelslike},
-				$w->{humidity},
-				$w->{pressure},
-			);
-		}
-	} else {
+	# Get coordinates
+	my $g = __weather_geo ($city);
+
+	unless (defined $g) {
 		$reply = "Я не знаю, какая погода в $city";
+	} else {
+		my $w = __weather ($g->{lat}, $g->{lon});
+
+		if ($w) {
+			if ($w->{temperature_min} == $w->{temperature_max}) {
+				$reply = sprintf (
+					"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+					$city,
+					$w->{country},
+					ucfirst $w->{description},
+					$w->{wind_direction},
+					$w->{wind_speed},
+					$w->{temperature_min},
+					$w->{temperature_feelslike},
+					$w->{humidity},
+					$w->{pressure},
+				);
+			} elsif ($w->{temperature_min} < 0 && $w->{temperature_max} <= 0) {
+				$reply = sprintf (
+					"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+					$w->{name},
+					$w->{country},
+					ucfirst $w->{description},
+					$w->{wind_direction},
+					$w->{wind_speed},
+					$w->{temperature_max},
+					$w->{temperature_min},
+					$w->{temperature_feelslike},
+					$w->{humidity},
+					$w->{pressure},
+				);
+			} else {
+				$reply = sprintf (
+					"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+					$w->{name},
+					$w->{country},
+					ucfirst $w->{description},
+					$w->{wind_direction},
+					$w->{wind_speed},
+					$w->{temperature_min},
+					$w->{temperature_max},
+					$w->{temperature_feelslike},
+					$w->{humidity},
+					$w->{pressure},
+				);
+			}
+		} else {
+			$reply = "Я не знаю, какая погода в $city";
+		}
 	}
 
 	return $reply;
 }
 
 sub __weather {
-	my $city = shift;
-	$city = urlencode $city;
+	my $lat  = shift;
+	my $lon  = shift;
+
 	my $appid = $c->{openweathermap}->{appid};
 	my $fc;
 	my $w;
 
 	my $r;
 
-	# try 3 times and giveup
+	# Try 3 times and giveup
 	for (1..3) {
 		my $ua = Mojo::UserAgent::Cached->new;
 		$ua->local_dir ($cachedir);
@@ -640,7 +659,14 @@ sub __weather {
 		);
 		# just to make Mojo::UserAgent::Cached happy
 		$ua->logger (Mojo::Log->new (path => File::Spec->devnull, level => 'error'));
-		$r = $ua->get (sprintf ('http://api.openweathermap.org/data/2.5/weather?q=%s&lang=ru&APPID=%s', $city, $appid))->result;
+		$r = $ua->get (
+			sprintf (
+				'http://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&lang=ru&APPID=%s',
+				$lat,
+				$lon,
+				$appid,
+			),
+		)->result;
 
 		if ($r->is_success) {
 			last;
@@ -665,19 +691,19 @@ sub __weather {
 	}
 
 	# TODO: check all of this for existence
-	$w->{'name'} = $fc->{name};
-	$w->{'state'} = $fc->{state};
-	$w->{'country'} = $fc->{sys}->{country};
-	$w->{'longitude'} = $fc->{coord}->{lon};
-	$w->{'latitude'} = $fc->{coord}->{lat};
-	$w->{'temperature_min'} = int ($fc->{main}->{temp_min} - 273.15);
-	$w->{'temperature_max'} = int ($fc->{main}->{temp_max} - 273.15);
+	$w->{'name'}                  = $fc->{name};
+	$w->{'state'}                 = $fc->{state};
+	$w->{'country'}               = $fc->{sys}->{country};
+	$w->{'longitude'}             = $fc->{coord}->{lon};
+	$w->{'latitude'}              = $fc->{coord}->{lat};
+	$w->{'temperature_min'}       = int ($fc->{main}->{temp_min} - 273.15);
+	$w->{'temperature_max'}       = int ($fc->{main}->{temp_max} - 273.15);
 	$w->{'temperature_feelslike'} = int ($fc->{main}->{feels_like} - 273.15);
-	$w->{'humidity'} = $fc->{main}->{humidity};
-	$w->{'pressure'} = int ($fc->{main}->{pressure} * 0.75006375541921);
-	$w->{'description'} = $fc->{weather}->[0]->{description};
-	$w->{'wind_speed'} = $fc->{wind}->{speed};
-	$w->{'wind_direction'} = 'разный';
+	$w->{'humidity'}              = $fc->{main}->{humidity};
+	$w->{'pressure'}              = int ($fc->{main}->{pressure} * 0.75006375541921);
+	$w->{'description'}           = $fc->{weather}->[0]->{description};
+	$w->{'wind_speed'}            = $fc->{wind}->{speed};
+	$w->{'wind_direction'}        = 'разный';
 	my $dir = int ($fc->{wind}->{deg} + 0);
 
 	if ($dir == 0) {
@@ -717,6 +743,77 @@ sub __weather {
 	}
 
 	return $w;
+}
+
+sub __weather_geo {
+	my $city = shift;
+	$city = urlencode $city;
+	my $appid = $c->{openweathermap}->{appid};
+	my $geo;
+
+	my $r;
+
+	# Try 3 times and giveup
+	for (1..3) {
+		my $ua = Mojo::UserAgent::Cached->new;
+		$ua->local_dir ($cachedir);
+		$ua->cache_agent (
+			CHI->new (
+				driver             => 'BerkeleyDB',
+				root_dir           => $cachedir,
+				namespace          => __PACKAGE__,
+				expires_in         => '2 months',
+				expires_on_backend => 1,
+			),
+		);
+		# Just to make Mojo::UserAgent::Cached happy
+		$ua->logger (Mojo::Log->new (path => File::Spec->devnull, level => 'error'));
+
+		$r = $ua->get (
+			sprintf (
+				'http://api.openweathermap.org/geo/1.0/direct?q=%s&limit=1&APPID=%s',
+				$city,
+				$appid,
+			),
+		)->result;
+
+		if ($r->is_success) {
+			last;
+		}
+
+		sleep 2;
+	}
+
+	# All 3 times it can give us error, so check this case here
+	if ($r->is_success) {
+		$geo = eval {
+			return $r->json;
+		};
+
+		unless ($geo) {
+			$log->warn ("[WARN] openweathermap geo api returns corrupted json: $EVAL_ERROR");
+			return;
+		}
+	} else {
+		$log->warn (
+			sprintf (
+				'[WARN] Server api.openweathermap.org return status %s with message: %s in request to geo',
+				$r->code,
+				$r->message,
+			),
+		);
+
+		return;
+	}
+
+	if (defined ($geo->[0]->{lat}) && defined ($geo->[0]->{lon})) {
+		# Success
+		return $geo->[0];
+	} else {
+		# Error, no coordinates
+		$log->warn ('[WARN] Server api.openweathermap.org does not return coordinates in response to geo request');
+		return;
+	}
 }
 
 1;
