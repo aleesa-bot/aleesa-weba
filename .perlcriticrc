@@ -132,3 +132,5 @@ lib_sections    = NAME | VERSION | DESCRIPTION | AUTHOR | LICENSE AND COPYRIGHT
 
 [-TooMuchCode::ProhibitLargeBlock]
 # read my lips: fuck off
+
+[-RegularExpressions::ProhibitComplexRegexes]
