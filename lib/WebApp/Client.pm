@@ -585,46 +585,96 @@ sub Weather {
 
 		if ($w) {
 			if ($w->{temperature_min} == $w->{temperature_max}) {
-				$reply = sprintf (
-					"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-					$city,
-					$w->{country},
-					ucfirst $w->{description},
-					$w->{wind_direction},
-					$w->{wind_speed},
-					$w->{temperature_min},
-					$w->{temperature_feelslike},
-					$w->{humidity},
-					$w->{pressure},
-				);
+				if ($c->{openweathermap}->{country}) {
+					$reply = sprintf (
+						"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+						$city,
+						$w->{country},
+						ucfirst $w->{description},
+						$w->{wind_direction},
+						$w->{wind_speed},
+						$w->{temperature_min},
+						$w->{temperature_feelslike},
+						$w->{humidity},
+						$w->{pressure},
+					);
+				} else {
+					$reply = sprintf (
+						"Погода в городе %s, (ш:%s, д:%s):\n%s, ветер %s %s м/c, температура %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+						$city,
+						$g->{lat},
+						$g->{lon},
+						ucfirst $w->{description},
+						$w->{wind_direction},
+						$w->{wind_speed},
+						$w->{temperature_min},
+						$w->{temperature_feelslike},
+						$w->{humidity},
+						$w->{pressure},
+					);
+				}
 			} elsif ($w->{temperature_min} < 0 && $w->{temperature_max} <= 0) {
-				$reply = sprintf (
-					"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-					$w->{name},
-					$w->{country},
-					ucfirst $w->{description},
-					$w->{wind_direction},
-					$w->{wind_speed},
-					$w->{temperature_max},
-					$w->{temperature_min},
-					$w->{temperature_feelslike},
-					$w->{humidity},
-					$w->{pressure},
-				);
+				if ($c->{openweathermap}->{country}) {
+					$reply = sprintf (
+						"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+						$w->{name},
+						$w->{country},
+						ucfirst $w->{description},
+						$w->{wind_direction},
+						$w->{wind_speed},
+						$w->{temperature_max},
+						$w->{temperature_min},
+						$w->{temperature_feelslike},
+						$w->{humidity},
+						$w->{pressure},
+					);
+				} else {
+					$reply = sprintf (
+						"Погода в городе %s, (ш:%s, д:%s):\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+						$w->{name},
+						$g->{lat},
+						$g->{lon},
+						ucfirst $w->{description},
+						$w->{wind_direction},
+						$w->{wind_speed},
+						$w->{temperature_max},
+						$w->{temperature_min},
+						$w->{temperature_feelslike},
+						$w->{humidity},
+						$w->{pressure},
+					);
+				}
 			} else {
-				$reply = sprintf (
-					"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-					$w->{name},
-					$w->{country},
-					ucfirst $w->{description},
-					$w->{wind_direction},
-					$w->{wind_speed},
-					$w->{temperature_min},
-					$w->{temperature_max},
-					$w->{temperature_feelslike},
-					$w->{humidity},
-					$w->{pressure},
-				);
+				if ($c->{openweathermap}->{country}) {
+					$reply = sprintf (
+						"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+						$w->{name},
+						$w->{country},
+						ucfirst $w->{description},
+						$w->{wind_direction},
+						$w->{wind_speed},
+						$w->{temperature_min},
+						$w->{temperature_max},
+						$w->{temperature_feelslike},
+						$w->{humidity},
+						$w->{pressure},
+					);
+				} else {
+					$reply = sprintf (
+						"Погода в городе %s, (ш:%s, д:%s):\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
+						$w->{name},
+						$g->{lat},
+						$g->{lon},
+						ucfirst $w->{description},
+						$w->{wind_direction},
+						$w->{wind_speed},
+						$w->{temperature_min},
+						$w->{temperature_max},
+						$w->{temperature_feelslike},
+						$w->{humidity},
+						$w->{pressure},
+					);
+				}
 			}
 		} else {
 			$reply = "Я не знаю, какая погода в $city";

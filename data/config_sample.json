@@ -26,6 +26,8 @@
     "forwards_max" : 5,
 
     "openweathermap" : {
+        # (For shitty political reasons) 0 - use coordinates instead of coutry code, 1 - use country codes
+        "country" : 0,
         "appid" : "get_it_on_openweathermap.org"
     },
 
