@@ -617,7 +617,7 @@ sub Weather {
 				if ($c->{openweathermap}->{country}) {
 					$reply = sprintf (
 						"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-						$w->{name},
+						$city,
 						$w->{country},
 						ucfirst $w->{description},
 						$w->{wind_direction},
@@ -631,7 +631,7 @@ sub Weather {
 				} else {
 					$reply = sprintf (
 						"Погода в городе %s, (ш:%s, д:%s):\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-						$w->{name},
+						$city,
 						$g->{lat},
 						$g->{lon},
 						ucfirst $w->{description},
@@ -648,7 +648,7 @@ sub Weather {
 				if ($c->{openweathermap}->{country}) {
 					$reply = sprintf (
 						"Погода в городе %s, %s:\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-						$w->{name},
+						$city,
 						$w->{country},
 						ucfirst $w->{description},
 						$w->{wind_direction},
@@ -662,7 +662,7 @@ sub Weather {
 				} else {
 					$reply = sprintf (
 						"Погода в городе %s, (ш:%s, д:%s):\n%s, ветер %s %s м/c, температура от %s до %s°C, ощущается как %s°C, относительная влажность %s%%, давление %s мм.рт.ст",
-						$w->{name},
+						$city,
 						$g->{lat},
 						$g->{lon},
 						ucfirst $w->{description},
